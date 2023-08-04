@@ -16,14 +16,18 @@ defmodule Kino.Control do
 
       button = Kino.Control.button("Hello")
 
-  Next, to receive events from the control, a process needs to
-  subscribe to it and specify pick a name to distinguish the
-  events.
+  Next, events need to be received from the control. This can
+  be done either by subscribing a process to the control with
+  `subscribe/2` or by creating an event stream using `stream/1`
+  or `tagged_stream/1` and then registering a callback using
+  `Kino.listen/1`.
+
+  Here, we'll subscribe the current process to events:
 
       Kino.Control.subscribe(button, :hello)
 
-  As the user interacts with the button, the subscribed process
-  receives corresponding events.
+  As the user clicks the button, the subscribed process
+  receives events:
 
       IEx.Helpers.flush()
       #=> {:hello, %{origin: "client1"}}
@@ -81,6 +85,20 @@ defmodule Kino.Control do
   This widget is represented as button that toggles interception
   mode, in which the given keyboard events are captured.
 
+  ## Options
+
+  Note that these options require Livebook v0.10.1 or later.
+
+    * `:disable_default_handlers` - whether Livebook's default
+      keyboard shortcut handlers should be disabled when this
+      control is enabled. Defaults to `true`
+
+    * `:enable_on_cell_focus` - maps the control to the cell focus
+      of the cell it is rendered in, such that it enables when the
+      cell is focused and disables when the cell is blurred. Note
+      that click-to-toggle is still available when this option is
+      used. Defaults to `false`
+
   ## Event info
 
   In addition to standard properties, all events include additional
@@ -124,7 +142,9 @@ defmodule Kino.Control do
       #=> {:keyboard, %{key: "k", origin: "client1", type: :keyup}}
   """
   @spec keyboard(list(:keyup | :keydown | :status)) :: t()
-  def keyboard(events) when is_list(events) do
+  def keyboard(events, opts \\ []) when is_list(events) do
+    opts = Keyword.validate!(opts, disable_default_handlers: true, enable_on_cell_focus: false)
+
     if events == [] do
       raise ArgumentError, "expected at least one event, got: []"
     end
@@ -136,7 +156,10 @@ defmodule Kino.Control do
       end
     end
 
-    new(%{type: :keyboard, events: events})
+    opts
+    |> Map.new()
+    |> Map.merge(%{type: :keyboard, events: events})
+    |> new()
   end
 
   @doc """
