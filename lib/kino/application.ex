@@ -7,6 +7,7 @@ defmodule Kino.Application do
     Application.put_env(:elixir, :dbg_callback, {Kino.Debug, :dbg, []})
 
     Kino.Counter.initialize()
+    Kino.SmartCell.register(Kino.RemoteExecutionCell)
 
     children = [
       {DynamicSupervisor, strategy: :one_for_one, name: Kino.DynamicSupervisor},
